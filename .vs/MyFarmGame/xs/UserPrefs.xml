@@ -1,0 +1,36 @@
+﻿<Properties StartupConfiguration="{B4F30651-C35D-8DBE-6E9B-4ACBE92BD362}|">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/UI/UIInventory/UIInventoryBar.cs">
+    <Files>
+      <File FileName="Assets/Scripts/Item/ObscuringItemFader.cs" Line="28" Column="44" />
+      <File FileName="Assets/Scripts/Item/TriggerObscuringItemFader.cs" />
+      <File FileName="Assets/Scripts/UI/UIInventory/UIInventoryBar.cs" Line="25" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="MyFarmGame" expanded="True">
+            <Node name="Assets" expanded="True">
+              <Node name="Scripts" expanded="True">
+                <Node name="Inventory" expanded="True" />
+                <Node name="Item" expanded="True">
+                  <Node name="ObscuringItemFader.cs" selected="True" />
+                </Node>
+                <Node name="UI" expanded="True">
+                  <Node name="UIInventory" expanded="True" />
+                </Node>
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp-Editor PreferredExecutionTarget="2c1e639d-6417-4463-ad23-b8ed27e8ce8d" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="585a3ed1-c943-471f-9192-a74afb70644b" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>

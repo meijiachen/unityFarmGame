@@ -1,0 +1,2 @@
+/Users/chenmeijia/workSpace/testSpace/testUnity/MyFarmGame/obj/Debug/Assembly-CSharp.csproj.AssemblyReference.cache
+/Users/chenmeijia/workSpace/testSpace/testUnity/MyFarmGame/obj/Debug/Assembly-CSharp.csproj.CoreCompileInputs.cache
