@@ -12,6 +12,9 @@ public class RandomTilemapGeneratorEditor : Editor
     private SerializedProperty dirtAmountProperty;
     private SerializedProperty terrainNoiseScaleProperty;
     private SerializedProperty terrainNoiseOffsetProperty;
+    private SerializedProperty terrainSmoothingIterationsProperty;
+    private SerializedProperty dirtSurvivalNeighborsProperty;
+    private SerializedProperty dirtBirthNeighborsProperty;
     private SerializedProperty tileStyleGroupsProperty;
     private SerializedProperty minCellProperty;
     private SerializedProperty maxCellProperty;
@@ -31,6 +34,9 @@ public class RandomTilemapGeneratorEditor : Editor
         dirtAmountProperty = serializedObject.FindProperty("dirtAmount");
         terrainNoiseScaleProperty = serializedObject.FindProperty("terrainNoiseScale");
         terrainNoiseOffsetProperty = serializedObject.FindProperty("terrainNoiseOffset");
+        terrainSmoothingIterationsProperty = serializedObject.FindProperty("terrainSmoothingIterations");
+        dirtSurvivalNeighborsProperty = serializedObject.FindProperty("dirtSurvivalNeighbors");
+        dirtBirthNeighborsProperty = serializedObject.FindProperty("dirtBirthNeighbors");
         tileStyleGroupsProperty = serializedObject.FindProperty("tileStyleGroups");
         minCellProperty = serializedObject.FindProperty("minCell");
         maxCellProperty = serializedObject.FindProperty("maxCell");
@@ -62,11 +68,19 @@ public class RandomTilemapGeneratorEditor : Editor
 
         if (generationMode == RandomTilemapGenerator.GenerationMode.TerrainNoise)
         {
+            EditorGUILayout.HelpBox(
+                "If the generated map looks too noisy, use a lower Terrain Noise Scale and more smoothing. " +
+                "A good starting point is Dirt Amount 0.25-0.4, Terrain Noise Scale 0.015-0.03, Smoothing Iterations 3.",
+                MessageType.None);
+
             EditorGUILayout.PropertyField(grassTileProperty);
             EditorGUILayout.PropertyField(dirtTileProperty);
             EditorGUILayout.PropertyField(dirtAmountProperty);
             EditorGUILayout.PropertyField(terrainNoiseScaleProperty);
             EditorGUILayout.PropertyField(terrainNoiseOffsetProperty);
+            EditorGUILayout.PropertyField(terrainSmoothingIterationsProperty);
+            EditorGUILayout.PropertyField(dirtSurvivalNeighborsProperty);
+            EditorGUILayout.PropertyField(dirtBirthNeighborsProperty);
         }
         else
         {

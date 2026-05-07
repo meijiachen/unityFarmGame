@@ -20,8 +20,17 @@ Usage:
 4. Assign a dirt RuleTile to `Dirt Tile`. Configure that RuleTile with the dirt center, edge, and corner sprites from the Tile Palette.
 5. Adjust `Dirt Amount` to control how much dirt appears.
 6. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
-7. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
-8. Click `Generate Random Map` in the component inspector.
-9. Click `Clear Generated Area` if you need to clear that same range.
+7. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
+8. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
+9. Click `Generate Random Map` in the component inspector.
+10. Click `Clear Generated Area` if you need to clear that same range.
+
+Recommended starting values for natural grass/dirt terrain:
+
+- `Dirt Amount`: `0.25` to `0.4`
+- `Terrain Noise Scale`: `0.015` to `0.03`
+- `Terrain Smoothing Iterations`: `3`
+- `Dirt Survival Neighbors`: `3`
+- `Dirt Birth Neighbors`: `5`
 
 `Style Groups` mode still exists for simple variant pools, but it is not recommended for palettes where most tiles are grass/dirt boundary pieces.

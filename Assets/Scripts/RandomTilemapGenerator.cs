@@ -45,9 +45,17 @@ public class RandomTilemapGenerator : MonoBehaviour
     [Header("Terrain Noise")]
     [SerializeField] private TileBase grassTile;
     [SerializeField] private TileBase dirtTile;
+    [Tooltip("Approximate amount of dirt before smoothing is applied.")]
     [SerializeField, Range(0f, 1f)] private float dirtAmount = 0.35f;
-    [SerializeField, Min(0.001f)] private float terrainNoiseScale = 0.05f;
+    [Tooltip("Lower values create larger, smoother dirt patches. Start around 0.015 to 0.03.")]
+    [SerializeField, Min(0.001f)] private float terrainNoiseScale = 0.025f;
     [SerializeField] private Vector2 terrainNoiseOffset;
+    [Tooltip("How many times to smooth the generated grass/dirt mask. Higher values remove noisy fragments.")]
+    [SerializeField, Range(0, 8)] private int terrainSmoothingIterations = 3;
+    [Tooltip("A dirt cell needs at least this many dirt neighbors to stay dirt during smoothing.")]
+    [SerializeField, Range(0, 8)] private int dirtSurvivalNeighbors = 3;
+    [Tooltip("A grass cell becomes dirt if it has at least this many dirt neighbors during smoothing.")]
+    [SerializeField, Range(0, 8)] private int dirtBirthNeighbors = 5;
 
     [Header("Tile Palette Styles")]
     [SerializeField] private TileStyleGroup[] tileStyleGroups = new TileStyleGroup[]
@@ -159,22 +167,128 @@ public class RandomTilemapGenerator : MonoBehaviour
     {
         Vector2 noiseOffset = GetNoiseOffset(random, terrainNoiseOffset);
         float dirtThreshold = 1f - dirtAmount;
-        int placedTileCount = 0;
+        bool[,] dirtMask = CreateTerrainMask(fromX, toX, fromY, toY, noiseOffset, dirtThreshold);
+        SmoothTerrainMask(dirtMask);
 
-        for (int y = fromY; y <= toY; y++)
+        int placedTileCount = 0;
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+
+        for (int localY = 0; localY < height; localY++)
         {
-            for (int x = fromX; x <= toX; x++)
+            for (int localX = 0; localX < width; localX++)
             {
-                float noise = Mathf.PerlinNoise(
-                    x * terrainNoiseScale + noiseOffset.x,
-                    y * terrainNoiseScale + noiseOffset.y);
-                TileBase tile = noise >= dirtThreshold ? dirtTile : grassTile;
+                int x = fromX + localX;
+                int y = fromY + localY;
+                TileBase tile = dirtMask[localX, localY] ? dirtTile : grassTile;
                 tilemap.SetTile(new Vector3Int(x, y, 0), tile);
                 placedTileCount++;
             }
         }
 
         return placedTileCount;
+    }
+
+    private bool[,] CreateTerrainMask(int fromX, int toX, int fromY, int toY, Vector2 noiseOffset, float dirtThreshold)
+    {
+        int width = toX - fromX + 1;
+        int height = toY - fromY + 1;
+        bool[,] dirtMask = new bool[width, height];
+
+        for (int localY = 0; localY < height; localY++)
+        {
+            for (int localX = 0; localX < width; localX++)
+            {
+                int x = fromX + localX;
+                int y = fromY + localY;
+                float noise = Mathf.PerlinNoise(
+                    x * terrainNoiseScale + noiseOffset.x,
+                    y * terrainNoiseScale + noiseOffset.y);
+                dirtMask[localX, localY] = noise >= dirtThreshold;
+            }
+        }
+
+        return dirtMask;
+    }
+
+    private void SmoothTerrainMask(bool[,] dirtMask)
+    {
+        for (int i = 0; i < terrainSmoothingIterations; i++)
+        {
+            dirtMask = SmoothTerrainMaskOnce(dirtMask);
+        }
+    }
+
+    private bool[,] SmoothTerrainMaskOnce(bool[,] dirtMask)
+    {
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+        bool[,] smoothedMask = new bool[width, height];
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int dirtNeighbors = CountDirtNeighbors(dirtMask, x, y);
+                if (dirtMask[x, y])
+                {
+                    smoothedMask[x, y] = dirtNeighbors >= dirtSurvivalNeighbors;
+                }
+                else
+                {
+                    smoothedMask[x, y] = dirtNeighbors >= dirtBirthNeighbors;
+                }
+            }
+        }
+
+        CopyMask(smoothedMask, dirtMask);
+        return dirtMask;
+    }
+
+    private static int CountDirtNeighbors(bool[,] dirtMask, int x, int y)
+    {
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+        int dirtNeighborCount = 0;
+
+        for (int offsetY = -1; offsetY <= 1; offsetY++)
+        {
+            for (int offsetX = -1; offsetX <= 1; offsetX++)
+            {
+                if (offsetX == 0 && offsetY == 0)
+                {
+                    continue;
+                }
+
+                int neighborX = x + offsetX;
+                int neighborY = y + offsetY;
+                if (neighborX < 0 || neighborY < 0 || neighborX >= width || neighborY >= height)
+                {
+                    continue;
+                }
+
+                if (dirtMask[neighborX, neighborY])
+                {
+                    dirtNeighborCount++;
+                }
+            }
+        }
+
+        return dirtNeighborCount;
+    }
+
+    private static void CopyMask(bool[,] source, bool[,] destination)
+    {
+        int width = source.GetLength(0);
+        int height = source.GetLength(1);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                destination[x, y] = source[x, y];
+            }
+        }
     }
 
     private int GenerateStyleGroups(Tilemap tilemap, System.Random random, int fromX, int toX, int fromY, int toY)
