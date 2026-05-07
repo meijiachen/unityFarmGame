@@ -9,6 +9,12 @@ using UnityEditor.SceneManagement;
 
 public class RandomTilemapGenerator : MonoBehaviour
 {
+    public enum GenerationMode
+    {
+        TerrainNoise,
+        StyleGroups
+    }
+
     [System.Serializable]
     public class TileStyleGroup
     {
@@ -32,6 +38,16 @@ public class RandomTilemapGenerator : MonoBehaviour
     [Header("Target")]
     [SerializeField] private Tilemap targetTilemap;
     [SerializeField] private string fallbackTilemapName = "Ground1";
+
+    [Header("Generation Mode")]
+    [SerializeField] private GenerationMode generationMode = GenerationMode.TerrainNoise;
+
+    [Header("Terrain Noise")]
+    [SerializeField] private TileBase grassTile;
+    [SerializeField] private TileBase dirtTile;
+    [SerializeField, Range(0f, 1f)] private float dirtAmount = 0.35f;
+    [SerializeField, Min(0.001f)] private float terrainNoiseScale = 0.05f;
+    [SerializeField] private Vector2 terrainNoiseOffset;
 
     [Header("Tile Palette Styles")]
     [SerializeField] private TileStyleGroup[] tileStyleGroups = new TileStyleGroup[]
@@ -63,17 +79,15 @@ public class RandomTilemapGenerator : MonoBehaviour
             return;
         }
 
-        List<ResolvedTileStyleGroup> validStyleGroups = GetValidStyleGroups();
-        if (validStyleGroups.Count == 0)
-        {
-            Debug.LogError("RandomTilemapGenerator needs at least one style group with at least one Tile asset.", this);
-            return;
-        }
-
         int fromX = Mathf.Min(minCell.x, maxCell.x);
         int toX = Mathf.Max(minCell.x, maxCell.x);
         int fromY = Mathf.Min(minCell.y, maxCell.y);
         int toY = Mathf.Max(minCell.y, maxCell.y);
+
+        if (!CanGenerate())
+        {
+            return;
+        }
 
         if (clearBeforeGenerate)
         {
@@ -86,9 +100,87 @@ public class RandomTilemapGenerator : MonoBehaviour
         }
 
         System.Random random = useRandomSeed ? new System.Random() : new System.Random(seed);
-        Vector2 noiseOffset = useRandomSeed
-            ? new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000))
-            : styleNoiseOffset + new Vector2(seed * 17.13f, seed * 31.71f);
+        int placedTileCount;
+
+        switch (generationMode)
+        {
+            case GenerationMode.TerrainNoise:
+                placedTileCount = GenerateTerrainNoise(tilemap, random, fromX, toX, fromY, toY);
+                break;
+            case GenerationMode.StyleGroups:
+                placedTileCount = GenerateStyleGroups(tilemap, random, fromX, toX, fromY, toY);
+                break;
+            default:
+                Debug.LogError("Unsupported generation mode: " + generationMode, this);
+                return;
+        }
+
+        tilemap.CompressBounds();
+        tilemap.RefreshAllTiles();
+        MarkTilemapDirty(tilemap);
+
+        Debug.Log(string.Format(
+            "Generated {0} random tiles on {1}, area x={2}..{3}, y={4}..{5}.",
+            placedTileCount,
+            tilemap.name,
+            fromX,
+            toX,
+            fromY,
+            toY), this);
+    }
+
+    private bool CanGenerate()
+    {
+        switch (generationMode)
+        {
+            case GenerationMode.TerrainNoise:
+                if (grassTile == null || dirtTile == null)
+                {
+                    Debug.LogError("RandomTilemapGenerator Terrain Noise mode needs both Grass Tile and Dirt Tile. These can be RuleTiles.", this);
+                    return false;
+                }
+
+                return true;
+            case GenerationMode.StyleGroups:
+                if (GetValidStyleGroups().Count == 0)
+                {
+                    Debug.LogError("RandomTilemapGenerator Style Groups mode needs at least one style group with at least one Tile asset.", this);
+                    return false;
+                }
+
+                return true;
+            default:
+                Debug.LogError("Unsupported generation mode: " + generationMode, this);
+                return false;
+        }
+    }
+
+    private int GenerateTerrainNoise(Tilemap tilemap, System.Random random, int fromX, int toX, int fromY, int toY)
+    {
+        Vector2 noiseOffset = GetNoiseOffset(random, terrainNoiseOffset);
+        float dirtThreshold = 1f - dirtAmount;
+        int placedTileCount = 0;
+
+        for (int y = fromY; y <= toY; y++)
+        {
+            for (int x = fromX; x <= toX; x++)
+            {
+                float noise = Mathf.PerlinNoise(
+                    x * terrainNoiseScale + noiseOffset.x,
+                    y * terrainNoiseScale + noiseOffset.y);
+                TileBase tile = noise >= dirtThreshold ? dirtTile : grassTile;
+                tilemap.SetTile(new Vector3Int(x, y, 0), tile);
+                placedTileCount++;
+            }
+        }
+
+        return placedTileCount;
+    }
+
+    private int GenerateStyleGroups(Tilemap tilemap, System.Random random, int fromX, int toX, int fromY, int toY)
+    {
+        List<ResolvedTileStyleGroup> validStyleGroups = GetValidStyleGroups();
+        Vector2 noiseOffset = GetNoiseOffset(random, styleNoiseOffset);
         int placedTileCount = 0;
 
         for (int y = fromY; y <= toY; y++)
@@ -102,17 +194,17 @@ public class RandomTilemapGenerator : MonoBehaviour
             }
         }
 
-        tilemap.CompressBounds();
-        MarkTilemapDirty(tilemap);
+        return placedTileCount;
+    }
 
-        Debug.Log(string.Format(
-            "Generated {0} random tiles on {1}, area x={2}..{3}, y={4}..{5}.",
-            placedTileCount,
-            tilemap.name,
-            fromX,
-            toX,
-            fromY,
-            toY), this);
+    private Vector2 GetNoiseOffset(System.Random random, Vector2 configuredOffset)
+    {
+        if (useRandomSeed)
+        {
+            return configuredOffset + new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000));
+        }
+
+        return configuredOffset + new Vector2(seed * 17.13f, seed * 31.71f);
     }
 
     [ContextMenu("Clear Generated Area")]
@@ -133,6 +225,7 @@ public class RandomTilemapGenerator : MonoBehaviour
         RecordTilemapUndo(tilemap, "Clear Random Map Area");
         ClearArea(tilemap, fromX, toX, fromY, toY);
         tilemap.CompressBounds();
+        tilemap.RefreshAllTiles();
         MarkTilemapDirty(tilemap);
     }
 
