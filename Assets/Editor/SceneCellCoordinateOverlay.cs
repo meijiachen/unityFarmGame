@@ -43,6 +43,7 @@ public static class SceneCellCoordinateOverlay
         }
 
         Event currentEvent = Event.current;
+        sceneView.wantsMouseMove = true;
         UpdateMousePosition(currentEvent, sceneView);
 
         if (currentEvent.type != EventType.Repaint || !hasMousePosition)
@@ -70,6 +71,13 @@ public static class SceneCellCoordinateOverlay
 
     private static void UpdateMousePosition(Event currentEvent, SceneView sceneView)
     {
+        if (currentEvent.type == EventType.MouseLeaveWindow)
+        {
+            hasMousePosition = false;
+            sceneView.Repaint();
+            return;
+        }
+
         if (currentEvent.isMouse || currentEvent.type == EventType.MouseMove)
         {
             lastMousePosition = currentEvent.mousePosition;
