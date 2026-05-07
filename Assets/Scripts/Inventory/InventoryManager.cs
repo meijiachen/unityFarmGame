@@ -8,11 +8,19 @@ public class InventoryManager : SingletonMonobehaviour<InventoryManager>
     [HideInInspector] public int[] inventoryListCapacityIntArray;
     [SerializeField] private SO_itemList itemList = null;
 
+    private int[] selectedInventoryItem;
+
     protected override void Awake()
     {
         base.Awake();
         CreateInventoryLists();
         CreateItemDetailDictionary();
+
+        selectedInventoryItem = new int[(int)InventoryLocation.count];
+        for (int i = 0; i < (int)InventoryLocation.count; i++)
+        {
+            selectedInventoryItem[i] = -1;
+        }
     }
 
     private void CreateInventoryLists()
@@ -157,5 +165,20 @@ public class InventoryManager : SingletonMonobehaviour<InventoryManager>
                 break;
         }
         return itemTypeDescription;
+    }
+
+    public void ClearSelectedInventoryItem(InventoryLocation inventoryLocation)
+    {
+        selectedInventoryItem[(int)inventoryLocation] = -1;
+    }
+
+    public void SetSelectedInventoryItem(InventoryLocation inventoryLocation,int itemCode)
+    {
+        selectedInventoryItem[(int)inventoryLocation] = itemCode;
+    }
+
+    public int GetSelectedInventoryItem(InventoryLocation inventoryLocation)
+    {
+        return selectedInventoryItem[(int)inventoryLocation];
     }
 }

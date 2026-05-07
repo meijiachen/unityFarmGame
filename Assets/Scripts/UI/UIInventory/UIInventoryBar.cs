@@ -50,7 +50,6 @@ public class UIInventoryBar : MonoBehaviour
         if (location == InventoryLocation.player)
         {
             ClearInventorySlots();
-
             if (inventorySlots.Length > 0 && list.Count > 0)
             {
                 for (int i = 0; i < inventorySlots.Length; i++)
@@ -70,6 +69,11 @@ public class UIInventoryBar : MonoBehaviour
                         break;
                     }
                 }
+            }
+            int selectedItemCode  = InventoryManager.Instance.GetSelectedInventoryItem(InventoryLocation.player);
+            if (selectedItemCode != -1)
+            {
+                setHighlightOnInventorySlots(selectedItemCode);
             }
         }
     }
@@ -118,5 +122,65 @@ public class UIInventoryBar : MonoBehaviour
             IsInventoryBarPositionBottom = false;
         }
         lastSwitchTime = Time.time;
+    }
+
+    public void ClearHighlightOnInventorySlots()
+    {
+        if(inventorySlots.Length > 0)
+        {
+            for (int i = 0; i < inventorySlots.Length; i++)
+            {
+                if (inventorySlots[i].itemDetails != null)
+                {
+                    if (inventorySlots[i].isSelected == true)
+                    {
+                        inventorySlots[i].isSelected = false;
+                        inventorySlots[i].inventorySlotHighlight.color = new Color(0f,0f,0f,0f);
+                        InventoryManager.Instance.ClearSelectedInventoryItem(InventoryLocation.player);
+                    }
+                }
+            }
+        }
+    }
+
+    public void setHighlightOnInventorySlots(int itemCode)
+    {
+        if(inventorySlots.Length > 0)
+        {
+            for (int i = 0; i < inventorySlots.Length; i++)
+            {
+                if (inventorySlots[i].itemDetails != null)
+                {
+                    if (inventorySlots[i].itemDetails.itemCode == itemCode)
+                    {
+                        inventorySlots[i].isSelected = true;
+                        inventorySlots[i].inventorySlotHighlight.color = new Color(1f,1f,1f,1f);
+                        InventoryManager.Instance.SetSelectedInventoryItem(InventoryLocation.player,itemCode);
+                    }
+                    else
+                    {
+                        inventorySlots[i].isSelected = false;
+                        inventorySlots[i].inventorySlotHighlight.color = new Color(0f,0f,0f,0f);
+                    }
+                }
+                else if (inventorySlots[i].isSelected == true)
+                {
+                    inventorySlots[i].isSelected = false;
+                    inventorySlots[i].inventorySlotHighlight.color = new Color(0f,0f,0f,0f);
+                }
+            }
+        }
+    }
+
+    public void SetHighlightedInventorySlotsByPos(int itemPosition)
+    {
+        if (inventorySlots.Length > 0 && inventorySlots[itemPosition].itemDetails != null)
+        {
+            if (inventorySlots[itemPosition].isSelected)
+            {
+                inventorySlots[itemPosition].inventorySlotHighlight.color = new Color(1f, 1f, 1f, 1f);
+                InventoryManager.Instance.SetSelectedInventoryItem(InventoryLocation.player, inventorySlots[itemPosition].itemDetails.itemCode);
+            }
+        }
     }
 }

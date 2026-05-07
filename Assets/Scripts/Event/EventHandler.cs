@@ -38,4 +38,53 @@ public static class EventHandler
                 idleUp, idleDown, idleLeft, idleRight);
         }
     }
+
+    public static event Action<GameDateTime, TimeChangeFlags> GameTimeChangedEvent;
+
+    public static void CallGameTimeChangedEvent(GameDateTime time, TimeChangeFlags flags)
+    {
+        if (GameTimeChangedEvent != null)
+        {
+            GameTimeChangedEvent(time, flags);
+        }
+    }
+
+    public static event Action BeforeSceneUnloadFadeOutEvent;
+
+    public static void CallBeforeSceneUnloadFadeOutEvent()
+    {
+        if (BeforeSceneUnloadFadeOutEvent != null)
+        {
+            BeforeSceneUnloadFadeOutEvent();
+        }
+    }
+
+    public static event Action BeforeSceneUnloadEvent;
+
+    public static void CallBeforeSceneUnloadEvent()
+    {
+        if (BeforeSceneUnloadEvent != null)
+        {
+            BeforeSceneUnloadEvent();
+        }
+    }
+
+    public static event Action AfterSceneLoadEvent;
+
+    public static void CallAfterSceneLoadEvent()
+    {
+        if (AfterSceneLoadEvent != null)
+        {
+            AfterSceneLoadEvent();
+        }
+    }
+    public static event Action AfterSceneLoadFadeInEvent;
+
+    public static void CallAfterSceneLoadFadeInEvent()
+    {
+        if (AfterSceneLoadFadeInEvent != null)
+        {
+            AfterSceneLoadFadeInEvent();
+        }
+    }
 }

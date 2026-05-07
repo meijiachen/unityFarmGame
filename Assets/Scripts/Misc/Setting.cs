@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public static class Settings
 {
@@ -50,6 +51,8 @@ public static class Settings
     public const string CollectingTool = "Basket";
     public const string WateringTool = "Watering Can";
 
+    public const float secondsPerGameSecond = 0.012f;
+
     static Settings()
     {
         // Player Animation Parameters
@@ -81,4 +84,16 @@ public static class Settings
         idleLeft = Animator.StringToHash("idleLeft");
         idleRight = Animator.StringToHash("idleRight");
     }
+}
+
+[Flags]
+public enum TimeChangeFlags
+{
+    None = 0,
+    Initial = 1 << 0,
+    Minute = 1 << 1,
+    Hour = 1 << 2,
+    Day = 1 << 3,
+    Season = 1 << 4,
+    Year = 1 << 5,
 }

@@ -3,7 +3,7 @@
     <Files>
       <File FileName="Assets/Scripts/Item/ObscuringItemFader.cs" Line="28" Column="44" />
       <File FileName="Assets/Scripts/Item/TriggerObscuringItemFader.cs" />
-      <File FileName="Assets/Scripts/UI/UIInventory/UIInventoryBar.cs" Line="25" Column="1" />
+      <File FileName="Assets/Scripts/UI/UIInventory/UIInventoryBar.cs" Line="25" Column="34" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
