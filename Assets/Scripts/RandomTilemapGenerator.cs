@@ -45,6 +45,8 @@ public class RandomTilemapGenerator : MonoBehaviour
     [Header("Terrain Noise")]
     [SerializeField] private TileBase grassTile;
     [SerializeField] private TileBase dirtTile;
+    [Tooltip("Optional extra Dirt RuleTiles. The generator chooses one Dirt RuleTile for the whole generated map so RuleTile neighbor checks remain correct.")]
+    [SerializeField] private TileBase[] additionalDirtTiles = new TileBase[0];
     [Tooltip("Approximate amount of dirt before smoothing is applied.")]
     [SerializeField, Range(0f, 1f)] private float dirtAmount = 0.35f;
     [Tooltip("Lower values create larger, smoother dirt patches. Start around 0.015 to 0.03.")]
@@ -142,9 +144,9 @@ public class RandomTilemapGenerator : MonoBehaviour
         switch (generationMode)
         {
             case GenerationMode.TerrainNoise:
-                if (grassTile == null || dirtTile == null)
+                if (grassTile == null || GetValidDirtTiles().Count == 0)
                 {
-                    Debug.LogError("RandomTilemapGenerator Terrain Noise mode needs both Grass Tile and Dirt Tile. These can be RuleTiles.", this);
+                    Debug.LogError("RandomTilemapGenerator Terrain Noise mode needs Grass Tile and at least one Dirt Tile. Dirt Tiles can be RuleTiles.", this);
                     return false;
                 }
 
@@ -165,6 +167,13 @@ public class RandomTilemapGenerator : MonoBehaviour
 
     private int GenerateTerrainNoise(Tilemap tilemap, System.Random random, int fromX, int toX, int fromY, int toY)
     {
+        TileBase selectedDirtTile = ChooseDirtTile(random);
+        if (selectedDirtTile == null)
+        {
+            Debug.LogError("RandomTilemapGenerator could not choose a Dirt Tile.", this);
+            return 0;
+        }
+
         Vector2 noiseOffset = GetNoiseOffset(random, terrainNoiseOffset);
         float dirtThreshold = 1f - dirtAmount;
         bool[,] dirtMask = CreateTerrainMask(fromX, toX, fromY, toY, noiseOffset, dirtThreshold);
@@ -180,13 +189,48 @@ public class RandomTilemapGenerator : MonoBehaviour
             {
                 int x = fromX + localX;
                 int y = fromY + localY;
-                TileBase tile = dirtMask[localX, localY] ? dirtTile : grassTile;
+                TileBase tile = dirtMask[localX, localY] ? selectedDirtTile : grassTile;
                 tilemap.SetTile(new Vector3Int(x, y, 0), tile);
                 placedTileCount++;
             }
         }
 
         return placedTileCount;
+    }
+
+    private TileBase ChooseDirtTile(System.Random random)
+    {
+        List<TileBase> validDirtTiles = GetValidDirtTiles();
+        if (validDirtTiles.Count == 0)
+        {
+            return null;
+        }
+
+        return validDirtTiles[random.Next(validDirtTiles.Count)];
+    }
+
+    private List<TileBase> GetValidDirtTiles()
+    {
+        List<TileBase> validDirtTiles = new List<TileBase>();
+        if (dirtTile != null)
+        {
+            validDirtTiles.Add(dirtTile);
+        }
+
+        if (additionalDirtTiles == null)
+        {
+            return validDirtTiles;
+        }
+
+        for (int i = 0; i < additionalDirtTiles.Length; i++)
+        {
+            if (additionalDirtTiles[i] != null)
+            {
+                validDirtTiles.Add(additionalDirtTiles[i]);
+            }
+        }
+
+        return validDirtTiles;
     }
 
     private bool[,] CreateTerrainMask(int fromX, int toX, int fromY, int toY, Vector2 noiseOffset, float dirtThreshold)

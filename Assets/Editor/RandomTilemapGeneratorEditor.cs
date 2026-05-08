@@ -9,6 +9,7 @@ public class RandomTilemapGeneratorEditor : Editor
     private SerializedProperty generationModeProperty;
     private SerializedProperty grassTileProperty;
     private SerializedProperty dirtTileProperty;
+    private SerializedProperty additionalDirtTilesProperty;
     private SerializedProperty dirtAmountProperty;
     private SerializedProperty terrainNoiseScaleProperty;
     private SerializedProperty terrainNoiseOffsetProperty;
@@ -31,6 +32,7 @@ public class RandomTilemapGeneratorEditor : Editor
         generationModeProperty = serializedObject.FindProperty("generationMode");
         grassTileProperty = serializedObject.FindProperty("grassTile");
         dirtTileProperty = serializedObject.FindProperty("dirtTile");
+        additionalDirtTilesProperty = serializedObject.FindProperty("additionalDirtTiles");
         dirtAmountProperty = serializedObject.FindProperty("dirtAmount");
         terrainNoiseScaleProperty = serializedObject.FindProperty("terrainNoiseScale");
         terrainNoiseOffsetProperty = serializedObject.FindProperty("terrainNoiseOffset");
@@ -72,9 +74,14 @@ public class RandomTilemapGeneratorEditor : Editor
                 "If the generated map looks too noisy, use a lower Terrain Noise Scale and more smoothing. " +
                 "A good starting point is Dirt Amount 0.25-0.4, Terrain Noise Scale 0.015-0.03, Smoothing Iterations 3.",
                 MessageType.None);
+            EditorGUILayout.HelpBox(
+                "When using multiple Dirt RuleTiles, put the first one in Dirt Tile and the rest in Additional Dirt Tiles. " +
+                "The generator chooses one for the whole map; choosing per cell would break RuleTile neighbor matching.",
+                MessageType.None);
 
             EditorGUILayout.PropertyField(grassTileProperty);
             EditorGUILayout.PropertyField(dirtTileProperty);
+            EditorGUILayout.PropertyField(additionalDirtTilesProperty, true);
             EditorGUILayout.PropertyField(dirtAmountProperty);
             EditorGUILayout.PropertyField(terrainNoiseScaleProperty);
             EditorGUILayout.PropertyField(terrainNoiseOffsetProperty);
