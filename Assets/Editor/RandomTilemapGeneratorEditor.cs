@@ -84,6 +84,9 @@ public class RandomTilemapGeneratorEditor : Editor
                 "Use Terrain Layers when different Tilemap nodes need different RuleTiles. " +
                 "Each layer shares the same terrain mask but uses its own Grass Tile, Dirt Tile, and Additional Dirt Tiles.",
                 MessageType.None);
+            EditorGUILayout.HelpBox(
+                "For flowers or small decoration layers, set that layer's Paint On to Grass Only and Paint Chance to a low value such as 0.05-0.15.",
+                MessageType.None);
 
             EditorGUILayout.PropertyField(grassTileProperty);
             EditorGUILayout.PropertyField(dirtTileProperty);

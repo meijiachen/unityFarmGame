@@ -15,6 +15,13 @@ public class RandomTilemapGenerator : MonoBehaviour
         StyleGroups
     }
 
+    public enum LayerPaintTarget
+    {
+        GrassAndDirt,
+        GrassOnly,
+        DirtOnly
+    }
+
     [System.Serializable]
     public class TileStyleGroup
     {
@@ -30,6 +37,8 @@ public class RandomTilemapGenerator : MonoBehaviour
         public string name = "Terrain Layer";
         public Tilemap targetTilemap;
         public string fallbackTilemapName;
+        public LayerPaintTarget paintOn = LayerPaintTarget.GrassAndDirt;
+        [Range(0f, 1f)] public float paintChance = 1f;
         public TileBase grassTile;
         public TileBase dirtTile;
         [Tooltip("Optional extra Dirt RuleTiles for this Tilemap. One Dirt RuleTile is chosen for the whole layer per generation.")]
@@ -272,7 +281,13 @@ public class RandomTilemapGenerator : MonoBehaviour
         {
             for (int localX = 0; localX < width; localX++)
             {
-                TileBase tile = dirtMask[localX, localY] ? selectedDirtTile : layer.grassTile;
+                bool isDirt = dirtMask[localX, localY];
+                if (!ShouldPaintLayerCell(layer, random, isDirt))
+                {
+                    continue;
+                }
+
+                TileBase tile = isDirt ? selectedDirtTile : layer.grassTile;
                 if (tile == null)
                 {
                     continue;
@@ -288,6 +303,37 @@ public class RandomTilemapGenerator : MonoBehaviour
         MarkTilemapDirty(layerTilemap);
 
         return placedTileCount;
+    }
+
+    private static bool ShouldPaintLayerCell(TerrainTilemapLayer layer, System.Random random, bool isDirt)
+    {
+        switch (layer.paintOn)
+        {
+            case LayerPaintTarget.GrassOnly:
+                if (isDirt)
+                {
+                    return false;
+                }
+                break;
+            case LayerPaintTarget.DirtOnly:
+                if (!isDirt)
+                {
+                    return false;
+                }
+                break;
+        }
+
+        if (layer.paintChance >= 1f)
+        {
+            return true;
+        }
+
+        if (layer.paintChance <= 0f)
+        {
+            return false;
+        }
+
+        return random.NextDouble() <= layer.paintChance;
     }
 
     private TileBase ChooseDirtTile(System.Random random)

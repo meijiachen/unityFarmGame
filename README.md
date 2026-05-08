@@ -20,12 +20,13 @@ Usage:
 4. Assign a dirt RuleTile to `Dirt Tile`. Configure that RuleTile with the dirt center, edge, and corner sprites from the Tile Palette.
 5. If you have more Dirt RuleTiles, put them in `Additional Dirt Tiles`. The generator chooses one Dirt RuleTile for the whole generated map, because choosing different RuleTiles per dirt cell breaks RuleTile neighbor matching.
 6. If different Tilemap nodes need different RuleTiles, configure `Terrain Layers`. Each layer has its own `Target Tilemap`, `Grass Tile`, `Dirt Tile`, and `Additional Dirt Tiles`, but all layers share the same generated grass/dirt mask so their boundaries line up.
-7. Adjust `Dirt Amount` to control how much dirt appears.
-8. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
-9. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
-10. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
-11. Click `Generate Random Map` in the component inspector.
-12. Click `Clear Generated Area` if you need to clear that same range.
+7. For decoration layers such as flowers, set `Paint On` to `Grass Only` and set `Paint Chance` to a low value such as `0.05` to `0.15`.
+8. Adjust `Dirt Amount` to control how much dirt appears.
+9. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
+10. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
+11. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
+12. Click `Generate Random Map` in the component inspector.
+13. Click `Clear Generated Area` if you need to clear that same range.
 
 Example `Terrain Layers` setup:
 
@@ -44,8 +45,16 @@ Example `Terrain Layers` setup:
 - Layer 2
   - `Name`: `GroundDecoration1`
   - `Target Tilemap`: `GroundDecoration1`
-  - `Grass Tile`: empty if this layer should only draw dirt/detail
-  - `Dirt Tile`: a decoration/detail RuleTile
+  - `Paint On`: `Grass Only`
+  - `Paint Chance`: `0.05` to `0.15`
+  - `Grass Tile`: flower or decoration Tile/RuleTile
+  - `Dirt Tile`: empty unless you also want decorations on dirt
+
+Decoration RuleTile note:
+
+- RuleTile `Output = Random` randomizes which sprite is used after a rule matches.
+- It does not control whether a cell should contain decoration.
+- Use layer `Paint Chance` for sparse placement, otherwise every matching grass/dirt cell can receive a decoration and look too regular.
 
 Recommended starting values for natural grass/dirt terrain:
 
