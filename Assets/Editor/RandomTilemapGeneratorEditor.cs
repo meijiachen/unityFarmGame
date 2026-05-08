@@ -16,6 +16,7 @@ public class RandomTilemapGeneratorEditor : Editor
     private SerializedProperty terrainSmoothingIterationsProperty;
     private SerializedProperty dirtSurvivalNeighborsProperty;
     private SerializedProperty dirtBirthNeighborsProperty;
+    private SerializedProperty terrainLayersProperty;
     private SerializedProperty tileStyleGroupsProperty;
     private SerializedProperty minCellProperty;
     private SerializedProperty maxCellProperty;
@@ -39,6 +40,7 @@ public class RandomTilemapGeneratorEditor : Editor
         terrainSmoothingIterationsProperty = serializedObject.FindProperty("terrainSmoothingIterations");
         dirtSurvivalNeighborsProperty = serializedObject.FindProperty("dirtSurvivalNeighbors");
         dirtBirthNeighborsProperty = serializedObject.FindProperty("dirtBirthNeighbors");
+        terrainLayersProperty = serializedObject.FindProperty("terrainLayers");
         tileStyleGroupsProperty = serializedObject.FindProperty("tileStyleGroups");
         minCellProperty = serializedObject.FindProperty("minCell");
         maxCellProperty = serializedObject.FindProperty("maxCell");
@@ -78,10 +80,15 @@ public class RandomTilemapGeneratorEditor : Editor
                 "When using multiple Dirt RuleTiles, put the first one in Dirt Tile and the rest in Additional Dirt Tiles. " +
                 "The generator chooses one for the whole map; choosing per cell would break RuleTile neighbor matching.",
                 MessageType.None);
+            EditorGUILayout.HelpBox(
+                "Use Terrain Layers when different Tilemap nodes need different RuleTiles. " +
+                "Each layer shares the same terrain mask but uses its own Grass Tile, Dirt Tile, and Additional Dirt Tiles.",
+                MessageType.None);
 
             EditorGUILayout.PropertyField(grassTileProperty);
             EditorGUILayout.PropertyField(dirtTileProperty);
             EditorGUILayout.PropertyField(additionalDirtTilesProperty, true);
+            EditorGUILayout.PropertyField(terrainLayersProperty, true);
             EditorGUILayout.PropertyField(dirtAmountProperty);
             EditorGUILayout.PropertyField(terrainNoiseScaleProperty);
             EditorGUILayout.PropertyField(terrainNoiseOffsetProperty);

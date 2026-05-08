@@ -23,6 +23,19 @@ public class RandomTilemapGenerator : MonoBehaviour
         public TileBase[] tiles = new TileBase[0];
     }
 
+    [System.Serializable]
+    public class TerrainTilemapLayer
+    {
+        public bool enabled = true;
+        public string name = "Terrain Layer";
+        public Tilemap targetTilemap;
+        public string fallbackTilemapName;
+        public TileBase grassTile;
+        public TileBase dirtTile;
+        [Tooltip("Optional extra Dirt RuleTiles for this Tilemap. One Dirt RuleTile is chosen for the whole layer per generation.")]
+        public TileBase[] additionalDirtTiles = new TileBase[0];
+    }
+
     private class ResolvedTileStyleGroup
     {
         public float Weight { get; private set; }
@@ -59,6 +72,10 @@ public class RandomTilemapGenerator : MonoBehaviour
     [Tooltip("A grass cell becomes dirt if it has at least this many dirt neighbors during smoothing.")]
     [SerializeField, Range(0, 8)] private int dirtBirthNeighbors = 5;
 
+    [Header("Terrain Layers")]
+    [Tooltip("Optional per-Tilemap settings. Use this when Ground1, Ground2, Ground3, decoration, or front layers need different RuleTiles.")]
+    [SerializeField] private TerrainTilemapLayer[] terrainLayers = new TerrainTilemapLayer[0];
+
     [Header("Tile Palette Styles")]
     [SerializeField] private TileStyleGroup[] tileStyleGroups = new TileStyleGroup[]
     {
@@ -83,9 +100,9 @@ public class RandomTilemapGenerator : MonoBehaviour
     public void GenerateRandomMap()
     {
         Tilemap tilemap = ResolveTargetTilemap();
-        if (tilemap == null)
+        if (tilemap == null && !(generationMode == GenerationMode.TerrainNoise && HasUsableTerrainLayer()))
         {
-            Debug.LogError("RandomTilemapGenerator could not find a target Tilemap. Assign Ground1 or attach this component to Ground1.", this);
+            Debug.LogError("RandomTilemapGenerator could not find a target Tilemap. Assign Ground1, attach this component to Ground1, or configure Terrain Layers.", this);
             return;
         }
 
@@ -99,14 +116,21 @@ public class RandomTilemapGenerator : MonoBehaviour
             return;
         }
 
+        bool useTerrainLayers = generationMode == GenerationMode.TerrainNoise && HasUsableTerrainLayer();
         if (clearBeforeGenerate)
         {
-            RecordTilemapUndo(tilemap, "Generate Random Map");
-            ClearArea(tilemap, fromX, toX, fromY, toY);
+            if (tilemap != null && !useTerrainLayers)
+            {
+                RecordTilemapUndo(tilemap, "Generate Random Map");
+                ClearArea(tilemap, fromX, toX, fromY, toY);
+            }
         }
         else
         {
-            RecordTilemapUndo(tilemap, "Generate Random Map");
+            if (tilemap != null && !useTerrainLayers)
+            {
+                RecordTilemapUndo(tilemap, "Generate Random Map");
+            }
         }
 
         System.Random random = useRandomSeed ? new System.Random() : new System.Random(seed);
@@ -125,14 +149,18 @@ public class RandomTilemapGenerator : MonoBehaviour
                 return;
         }
 
-        tilemap.CompressBounds();
-        tilemap.RefreshAllTiles();
-        MarkTilemapDirty(tilemap);
+        if (tilemap != null && !useTerrainLayers)
+        {
+            tilemap.CompressBounds();
+            tilemap.RefreshAllTiles();
+            MarkTilemapDirty(tilemap);
+        }
 
+        string targetName = useTerrainLayers || tilemap == null ? "configured terrain layers" : tilemap.name;
         Debug.Log(string.Format(
             "Generated {0} random tiles on {1}, area x={2}..{3}, y={4}..{5}.",
             placedTileCount,
-            tilemap.name,
+            targetName,
             fromX,
             toX,
             fromY,
@@ -144,6 +172,11 @@ public class RandomTilemapGenerator : MonoBehaviour
         switch (generationMode)
         {
             case GenerationMode.TerrainNoise:
+                if (HasUsableTerrainLayer())
+                {
+                    return true;
+                }
+
                 if (grassTile == null || GetValidDirtTiles().Count == 0)
                 {
                     Debug.LogError("RandomTilemapGenerator Terrain Noise mode needs Grass Tile and at least one Dirt Tile. Dirt Tiles can be RuleTiles.", this);
@@ -167,17 +200,29 @@ public class RandomTilemapGenerator : MonoBehaviour
 
     private int GenerateTerrainNoise(Tilemap tilemap, System.Random random, int fromX, int toX, int fromY, int toY)
     {
+        Vector2 noiseOffset = GetNoiseOffset(random, terrainNoiseOffset);
+        float dirtThreshold = 1f - dirtAmount;
+        bool[,] dirtMask = CreateTerrainMask(fromX, toX, fromY, toY, noiseOffset, dirtThreshold);
+        SmoothTerrainMask(dirtMask);
+
+        List<TerrainTilemapLayer> usableLayers = GetUsableTerrainLayers();
+        if (usableLayers.Count > 0)
+        {
+            int layeredTileCount = 0;
+            for (int i = 0; i < usableLayers.Count; i++)
+            {
+                layeredTileCount += PaintTerrainLayer(usableLayers[i], random, dirtMask, fromX, fromY);
+            }
+
+            return layeredTileCount;
+        }
+
         TileBase selectedDirtTile = ChooseDirtTile(random);
         if (selectedDirtTile == null)
         {
             Debug.LogError("RandomTilemapGenerator could not choose a Dirt Tile.", this);
             return 0;
         }
-
-        Vector2 noiseOffset = GetNoiseOffset(random, terrainNoiseOffset);
-        float dirtThreshold = 1f - dirtAmount;
-        bool[,] dirtMask = CreateTerrainMask(fromX, toX, fromY, toY, noiseOffset, dirtThreshold);
-        SmoothTerrainMask(dirtMask);
 
         int placedTileCount = 0;
         int width = dirtMask.GetLength(0);
@@ -198,9 +243,67 @@ public class RandomTilemapGenerator : MonoBehaviour
         return placedTileCount;
     }
 
+    private int PaintTerrainLayer(TerrainTilemapLayer layer, System.Random random, bool[,] dirtMask, int fromX, int fromY)
+    {
+        Tilemap layerTilemap = ResolveLayerTilemap(layer);
+        if (layerTilemap == null)
+        {
+            return 0;
+        }
+
+        TileBase selectedDirtTile = ChooseDirtTile(layer, random);
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+        int toX = fromX + width - 1;
+        int toY = fromY + height - 1;
+        int placedTileCount = 0;
+
+        if (clearBeforeGenerate)
+        {
+            RecordTilemapUndo(layerTilemap, "Generate Random Map Layer");
+            ClearArea(layerTilemap, fromX, toX, fromY, toY);
+        }
+        else
+        {
+            RecordTilemapUndo(layerTilemap, "Generate Random Map Layer");
+        }
+
+        for (int localY = 0; localY < height; localY++)
+        {
+            for (int localX = 0; localX < width; localX++)
+            {
+                TileBase tile = dirtMask[localX, localY] ? selectedDirtTile : layer.grassTile;
+                if (tile == null)
+                {
+                    continue;
+                }
+
+                layerTilemap.SetTile(new Vector3Int(fromX + localX, fromY + localY, 0), tile);
+                placedTileCount++;
+            }
+        }
+
+        layerTilemap.CompressBounds();
+        layerTilemap.RefreshAllTiles();
+        MarkTilemapDirty(layerTilemap);
+
+        return placedTileCount;
+    }
+
     private TileBase ChooseDirtTile(System.Random random)
     {
         List<TileBase> validDirtTiles = GetValidDirtTiles();
+        if (validDirtTiles.Count == 0)
+        {
+            return null;
+        }
+
+        return validDirtTiles[random.Next(validDirtTiles.Count)];
+    }
+
+    private TileBase ChooseDirtTile(TerrainTilemapLayer layer, System.Random random)
+    {
+        List<TileBase> validDirtTiles = GetValidDirtTiles(layer);
         if (validDirtTiles.Count == 0)
         {
             return null;
@@ -227,6 +330,35 @@ public class RandomTilemapGenerator : MonoBehaviour
             if (additionalDirtTiles[i] != null)
             {
                 validDirtTiles.Add(additionalDirtTiles[i]);
+            }
+        }
+
+        return validDirtTiles;
+    }
+
+    private static List<TileBase> GetValidDirtTiles(TerrainTilemapLayer layer)
+    {
+        List<TileBase> validDirtTiles = new List<TileBase>();
+        if (layer == null)
+        {
+            return validDirtTiles;
+        }
+
+        if (layer.dirtTile != null)
+        {
+            validDirtTiles.Add(layer.dirtTile);
+        }
+
+        if (layer.additionalDirtTiles == null)
+        {
+            return validDirtTiles;
+        }
+
+        for (int i = 0; i < layer.additionalDirtTiles.Length; i++)
+        {
+            if (layer.additionalDirtTiles[i] != null)
+            {
+                validDirtTiles.Add(layer.additionalDirtTiles[i]);
             }
         }
 
@@ -369,7 +501,7 @@ public class RandomTilemapGenerator : MonoBehaviour
     public void ClearGeneratedArea()
     {
         Tilemap tilemap = ResolveTargetTilemap();
-        if (tilemap == null)
+        if (tilemap == null && !(generationMode == GenerationMode.TerrainNoise && HasUsableTerrainLayer()))
         {
             Debug.LogError("RandomTilemapGenerator could not find a target Tilemap to clear.", this);
             return;
@@ -380,11 +512,37 @@ public class RandomTilemapGenerator : MonoBehaviour
         int fromY = Mathf.Min(minCell.y, maxCell.y);
         int toY = Mathf.Max(minCell.y, maxCell.y);
 
-        RecordTilemapUndo(tilemap, "Clear Random Map Area");
-        ClearArea(tilemap, fromX, toX, fromY, toY);
-        tilemap.CompressBounds();
-        tilemap.RefreshAllTiles();
-        MarkTilemapDirty(tilemap);
+        List<TerrainTilemapLayer> usableLayers = generationMode == GenerationMode.TerrainNoise
+            ? GetUsableTerrainLayers()
+            : new List<TerrainTilemapLayer>();
+        if (usableLayers.Count > 0)
+        {
+            for (int i = 0; i < usableLayers.Count; i++)
+            {
+                Tilemap layerTilemap = ResolveLayerTilemap(usableLayers[i]);
+                if (layerTilemap == null)
+                {
+                    continue;
+                }
+
+                RecordTilemapUndo(layerTilemap, "Clear Random Map Area");
+                ClearArea(layerTilemap, fromX, toX, fromY, toY);
+                layerTilemap.CompressBounds();
+                layerTilemap.RefreshAllTiles();
+                MarkTilemapDirty(layerTilemap);
+            }
+
+            return;
+        }
+
+        if (tilemap != null)
+        {
+            RecordTilemapUndo(tilemap, "Clear Random Map Area");
+            ClearArea(tilemap, fromX, toX, fromY, toY);
+            tilemap.CompressBounds();
+            tilemap.RefreshAllTiles();
+            MarkTilemapDirty(tilemap);
+        }
     }
 
     private Tilemap ResolveTargetTilemap()
@@ -403,6 +561,67 @@ public class RandomTilemapGenerator : MonoBehaviour
         if (!string.IsNullOrEmpty(fallbackTilemapName))
         {
             GameObject targetObject = GameObject.Find(fallbackTilemapName);
+            if (targetObject != null)
+            {
+                return targetObject.GetComponent<Tilemap>();
+            }
+        }
+
+        return null;
+    }
+
+    private bool HasUsableTerrainLayer()
+    {
+        return GetUsableTerrainLayers().Count > 0;
+    }
+
+    private List<TerrainTilemapLayer> GetUsableTerrainLayers()
+    {
+        List<TerrainTilemapLayer> usableLayers = new List<TerrainTilemapLayer>();
+        if (terrainLayers == null)
+        {
+            return usableLayers;
+        }
+
+        for (int i = 0; i < terrainLayers.Length; i++)
+        {
+            TerrainTilemapLayer layer = terrainLayers[i];
+            if (layer == null || !layer.enabled)
+            {
+                continue;
+            }
+
+            if (ResolveLayerTilemap(layer) == null)
+            {
+                continue;
+            }
+
+            if (layer.grassTile == null && GetValidDirtTiles(layer).Count == 0)
+            {
+                continue;
+            }
+
+            usableLayers.Add(layer);
+        }
+
+        return usableLayers;
+    }
+
+    private static Tilemap ResolveLayerTilemap(TerrainTilemapLayer layer)
+    {
+        if (layer == null)
+        {
+            return null;
+        }
+
+        if (layer.targetTilemap != null)
+        {
+            return layer.targetTilemap;
+        }
+
+        if (!string.IsNullOrEmpty(layer.fallbackTilemapName))
+        {
+            GameObject targetObject = GameObject.Find(layer.fallbackTilemapName);
             if (targetObject != null)
             {
                 return targetObject.GetComponent<Tilemap>();
