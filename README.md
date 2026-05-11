@@ -25,8 +25,9 @@ Usage:
 9. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
 10. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
 11. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
-12. Click `Generate Random Map` in the component inspector.
-13. Click `Clear Generated Area` if you need to clear that same range.
+12. If Dirt RuleTiles touching the generated rectangle edge show grass fringes, set `Rule Tile Neighbor Padding` to `1`.
+13. Click `Generate Random Map` in the component inspector.
+14. Click `Clear Generated Area` if you need to clear that same range.
 
 Example `Terrain Layers` setup:
 
@@ -55,6 +56,13 @@ Decoration RuleTile note:
 - RuleTile `Output = Random` randomizes which sprite is used after a rule matches.
 - It does not control whether a cell should contain decoration.
 - Use layer `Paint Chance` for sparse placement, otherwise every matching grass/dirt cell can receive a decoration and look too regular.
+
+Boundary RuleTile note:
+
+- RuleTiles treat empty cells outside the generated area as `Not This`.
+- If a dirt region touches `Min Cell` or `Max Cell`, the RuleTile may choose a grass-edge sprite on the map boundary.
+- Set `Rule Tile Neighbor Padding` to `1` to paint one extra neighbor ring outside the generated area so boundary dirt tiles match as `This`.
+- That padding ring is real Tilemap data, so make sure it is outside the visible/playable bounds or clear it with `Clear Generated Area` if you change your map size.
 
 Recommended starting values for natural grass/dirt terrain:
 

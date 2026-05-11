@@ -96,6 +96,10 @@ public class RandomTilemapGenerator : MonoBehaviour
     [SerializeField] private Vector2Int minCell = new Vector2Int(-40, -40);
     [SerializeField] private Vector2Int maxCell = new Vector2Int(40, 40);
 
+    [Header("RuleTile Boundary")]
+    [Tooltip("Adds hidden neighbor tiles outside the generated area so RuleTiles at the map edge do not treat the outside as grass/Not This. Set to 1 to remove grass fringes at the generated rectangle boundary.")]
+    [SerializeField, Range(0, 8)] private int ruleTileNeighborPadding;
+
     [Header("Style Layout")]
     [SerializeField, Min(0.001f)] private float styleNoiseScale = 0.05f;
     [SerializeField] private Vector2 styleNoiseOffset;
@@ -131,7 +135,7 @@ public class RandomTilemapGenerator : MonoBehaviour
             if (tilemap != null && !useTerrainLayers)
             {
                 RecordTilemapUndo(tilemap, "Generate Random Map");
-                ClearArea(tilemap, fromX, toX, fromY, toY);
+                ClearArea(tilemap, fromX - ruleTileNeighborPadding, toX + ruleTileNeighborPadding, fromY - ruleTileNeighborPadding, toY + ruleTileNeighborPadding);
             }
         }
         else
@@ -249,6 +253,8 @@ public class RandomTilemapGenerator : MonoBehaviour
             }
         }
 
+        PaintRuleTileNeighborPadding(tilemap, selectedDirtTile, dirtMask, fromX, fromY);
+
         return placedTileCount;
     }
 
@@ -265,12 +271,13 @@ public class RandomTilemapGenerator : MonoBehaviour
         int height = dirtMask.GetLength(1);
         int toX = fromX + width - 1;
         int toY = fromY + height - 1;
+        int padding = Mathf.Max(0, ruleTileNeighborPadding);
         int placedTileCount = 0;
 
         if (clearBeforeGenerate)
         {
             RecordTilemapUndo(layerTilemap, "Generate Random Map Layer");
-            ClearArea(layerTilemap, fromX, toX, fromY, toY);
+            ClearArea(layerTilemap, fromX - padding, toX + padding, fromY - padding, toY + padding);
         }
         else
         {
@@ -298,11 +305,53 @@ public class RandomTilemapGenerator : MonoBehaviour
             }
         }
 
+        if (ShouldPaintLayerPadding(layer))
+        {
+            PaintRuleTileNeighborPadding(layerTilemap, selectedDirtTile, dirtMask, fromX, fromY);
+        }
+
         layerTilemap.CompressBounds();
         layerTilemap.RefreshAllTiles();
         MarkTilemapDirty(layerTilemap);
 
         return placedTileCount;
+    }
+
+    private static bool ShouldPaintLayerPadding(TerrainTilemapLayer layer)
+    {
+        return layer.paintChance >= 1f && layer.paintOn != LayerPaintTarget.GrassOnly;
+    }
+
+    private void PaintRuleTileNeighborPadding(Tilemap tilemap, TileBase dirtTileForPadding, bool[,] dirtMask, int fromX, int fromY)
+    {
+        int padding = Mathf.Max(0, ruleTileNeighborPadding);
+        if (padding == 0 || tilemap == null || dirtTileForPadding == null)
+        {
+            return;
+        }
+
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+        int toX = fromX + width - 1;
+        int toY = fromY + height - 1;
+
+        for (int y = fromY - padding; y <= toY + padding; y++)
+        {
+            for (int x = fromX - padding; x <= toX + padding; x++)
+            {
+                if (x >= fromX && x <= toX && y >= fromY && y <= toY)
+                {
+                    continue;
+                }
+
+                int nearestLocalX = Mathf.Clamp(x - fromX, 0, width - 1);
+                int nearestLocalY = Mathf.Clamp(y - fromY, 0, height - 1);
+                if (dirtMask[nearestLocalX, nearestLocalY])
+                {
+                    tilemap.SetTile(new Vector3Int(x, y, 0), dirtTileForPadding);
+                }
+            }
+        }
     }
 
     private static bool ShouldPaintLayerCell(TerrainTilemapLayer layer, System.Random random, bool isDirt)
@@ -557,6 +606,7 @@ public class RandomTilemapGenerator : MonoBehaviour
         int toX = Mathf.Max(minCell.x, maxCell.x);
         int fromY = Mathf.Min(minCell.y, maxCell.y);
         int toY = Mathf.Max(minCell.y, maxCell.y);
+        int padding = Mathf.Max(0, ruleTileNeighborPadding);
 
         List<TerrainTilemapLayer> usableLayers = generationMode == GenerationMode.TerrainNoise
             ? GetUsableTerrainLayers()
@@ -572,7 +622,7 @@ public class RandomTilemapGenerator : MonoBehaviour
                 }
 
                 RecordTilemapUndo(layerTilemap, "Clear Random Map Area");
-                ClearArea(layerTilemap, fromX, toX, fromY, toY);
+                ClearArea(layerTilemap, fromX - padding, toX + padding, fromY - padding, toY + padding);
                 layerTilemap.CompressBounds();
                 layerTilemap.RefreshAllTiles();
                 MarkTilemapDirty(layerTilemap);
@@ -584,7 +634,7 @@ public class RandomTilemapGenerator : MonoBehaviour
         if (tilemap != null)
         {
             RecordTilemapUndo(tilemap, "Clear Random Map Area");
-            ClearArea(tilemap, fromX, toX, fromY, toY);
+            ClearArea(tilemap, fromX - padding, toX + padding, fromY - padding, toY + padding);
             tilemap.CompressBounds();
             tilemap.RefreshAllTiles();
             MarkTilemapDirty(tilemap);

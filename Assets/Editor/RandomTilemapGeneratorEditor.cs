@@ -20,6 +20,7 @@ public class RandomTilemapGeneratorEditor : Editor
     private SerializedProperty tileStyleGroupsProperty;
     private SerializedProperty minCellProperty;
     private SerializedProperty maxCellProperty;
+    private SerializedProperty ruleTileNeighborPaddingProperty;
     private SerializedProperty styleNoiseScaleProperty;
     private SerializedProperty styleNoiseOffsetProperty;
     private SerializedProperty useRandomSeedProperty;
@@ -44,6 +45,7 @@ public class RandomTilemapGeneratorEditor : Editor
         tileStyleGroupsProperty = serializedObject.FindProperty("tileStyleGroups");
         minCellProperty = serializedObject.FindProperty("minCell");
         maxCellProperty = serializedObject.FindProperty("maxCell");
+        ruleTileNeighborPaddingProperty = serializedObject.FindProperty("ruleTileNeighborPadding");
         styleNoiseScaleProperty = serializedObject.FindProperty("styleNoiseScale");
         styleNoiseOffsetProperty = serializedObject.FindProperty("styleNoiseOffset");
         useRandomSeedProperty = serializedObject.FindProperty("useRandomSeed");
@@ -87,6 +89,10 @@ public class RandomTilemapGeneratorEditor : Editor
             EditorGUILayout.HelpBox(
                 "For flowers or small decoration layers, set that layer's Paint On to Grass Only and Paint Chance to a low value such as 0.05-0.15.",
                 MessageType.None);
+            EditorGUILayout.HelpBox(
+                "If Dirt RuleTiles at the generated rectangle edge show grass fringes, set Rule Tile Neighbor Padding to 1. " +
+                "This paints one hidden neighbor ring outside the generated area for RuleTile matching.",
+                MessageType.None);
 
             EditorGUILayout.PropertyField(grassTileProperty);
             EditorGUILayout.PropertyField(dirtTileProperty);
@@ -109,6 +115,7 @@ public class RandomTilemapGeneratorEditor : Editor
         EditorGUILayout.Space();
         EditorGUILayout.PropertyField(minCellProperty);
         EditorGUILayout.PropertyField(maxCellProperty);
+        EditorGUILayout.PropertyField(ruleTileNeighborPaddingProperty);
 
         EditorGUILayout.Space();
         EditorGUILayout.PropertyField(useRandomSeedProperty);
