@@ -13,6 +13,7 @@ public class RandomTilemapGeneratorEditor : Editor
     private SerializedProperty terrainSmoothingIterationsProperty;
     private SerializedProperty dirtSurvivalNeighborsProperty;
     private SerializedProperty dirtBirthNeighborsProperty;
+    private SerializedProperty forceDirtBorderWidthProperty;
     private SerializedProperty ruleTileNeighborPaddingProperty;
     private SerializedProperty useRandomSeedProperty;
     private SerializedProperty seedProperty;
@@ -29,6 +30,7 @@ public class RandomTilemapGeneratorEditor : Editor
         terrainSmoothingIterationsProperty = serializedObject.FindProperty("terrainSmoothingIterations");
         dirtSurvivalNeighborsProperty = serializedObject.FindProperty("dirtSurvivalNeighbors");
         dirtBirthNeighborsProperty = serializedObject.FindProperty("dirtBirthNeighbors");
+        forceDirtBorderWidthProperty = serializedObject.FindProperty("forceDirtBorderWidth");
         ruleTileNeighborPaddingProperty = serializedObject.FindProperty("ruleTileNeighborPadding");
         useRandomSeedProperty = serializedObject.FindProperty("useRandomSeed");
         seedProperty = serializedObject.FindProperty("seed");
@@ -44,7 +46,7 @@ public class RandomTilemapGeneratorEditor : Editor
             "For decoration layers such as flowers, set Paint On to Grass Only and Paint Chance to a low value such as 0.05-0.15.",
             MessageType.None);
         EditorGUILayout.HelpBox(
-            "If Dirt RuleTiles at the generated rectangle edge show grass fringes, set Rule Tile Neighbor Padding to 1.",
+            "If the playable edge should not show grass, keep Force Dirt Border Width at 1. Rule Tile Neighbor Padding controls the hidden outside neighbor ring for RuleTile matching.",
             MessageType.None);
 
         serializedObject.Update();
@@ -54,6 +56,7 @@ public class RandomTilemapGeneratorEditor : Editor
         EditorGUILayout.Space();
         EditorGUILayout.PropertyField(minCellProperty);
         EditorGUILayout.PropertyField(maxCellProperty);
+        EditorGUILayout.PropertyField(forceDirtBorderWidthProperty);
         EditorGUILayout.PropertyField(ruleTileNeighborPaddingProperty);
 
         EditorGUILayout.Space();

@@ -53,8 +53,10 @@ public class RandomTilemapGenerator : MonoBehaviour
     [SerializeField, Range(0, 8)] private int dirtBirthNeighbors = 5;
 
     [Header("RuleTile Boundary")]
+    [Tooltip("Forces the outer N cells of the generated area to dirt. This prevents grass strips on the playable map edge.")]
+    [SerializeField, Range(0, 8)] private int forceDirtBorderWidth = 1;
     [Tooltip("Adds neighbor tiles outside the generated area so RuleTiles at the map edge do not treat the outside as grass/Not This. Set to 1 to remove grass fringes at the generated rectangle boundary.")]
-    [SerializeField, Range(0, 8)] private int ruleTileNeighborPadding;
+    [SerializeField, Range(0, 8)] private int ruleTileNeighborPadding = 1;
 
     [Header("Random")]
     [SerializeField] private bool useRandomSeed = true;
@@ -136,6 +138,8 @@ public class RandomTilemapGenerator : MonoBehaviour
             SmoothTerrainMaskOnce(dirtMask);
         }
 
+        ForceDirtAtAreaBorder(dirtMask);
+
         return dirtMask;
     }
 
@@ -179,6 +183,34 @@ public class RandomTilemapGenerator : MonoBehaviour
         }
 
         CopyMask(smoothedMask, dirtMask);
+    }
+
+    private void ForceDirtAtAreaBorder(bool[,] dirtMask)
+    {
+        int borderWidth = Mathf.Max(0, forceDirtBorderWidth);
+        if (borderWidth == 0)
+        {
+            return;
+        }
+
+        int width = dirtMask.GetLength(0);
+        int height = dirtMask.GetLength(1);
+        int clampedBorderWidth = Mathf.Min(borderWidth, Mathf.CeilToInt(Mathf.Min(width, height) * 0.5f));
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                bool isBorderCell = x < clampedBorderWidth
+                    || y < clampedBorderWidth
+                    || x >= width - clampedBorderWidth
+                    || y >= height - clampedBorderWidth;
+                if (isBorderCell)
+                {
+                    dirtMask[x, y] = true;
+                }
+            }
+        }
     }
 
     private int PaintTerrainLayer(TerrainTilemapLayer layer, System.Random random, bool[,] dirtMask, int fromX, int fromY)
