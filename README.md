@@ -10,24 +10,21 @@ The editor extension in `Assets/Editor/SceneCellCoordinateOverlay.cs` shows the 
 
 ## Random tilemap generator
 
-`Assets/Scripts/RandomTilemapGenerator.cs` can fill a Tilemap with random terrain while keeping grass/dirt boundaries manageable.
+`Assets/Scripts/RandomTilemapGenerator.cs` generates a shared grass/dirt terrain mask and paints it into one or more Tilemap layers.
 
 Usage:
 
-1. Add `RandomTilemapGenerator` to the `Ground1` GameObject, or assign `Ground1` to `Target Tilemap`.
-2. Keep `Generation Mode` as `Terrain Noise` for grass/dirt maps.
-3. Assign a normal grass Tile or grass RuleTile to `Grass Tile`.
-4. Assign a dirt RuleTile to `Dirt Tile`. Configure that RuleTile with the dirt center, edge, and corner sprites from the Tile Palette.
-5. If you have more Dirt RuleTiles, put them in `Additional Dirt Tiles`. The generator chooses one Dirt RuleTile for the whole generated map, because choosing different RuleTiles per dirt cell breaks RuleTile neighbor matching.
-6. If different Tilemap nodes need different RuleTiles, configure `Terrain Layers`. Each layer has its own `Target Tilemap`, `Grass Tile`, `Dirt Tile`, and `Additional Dirt Tiles`, but all layers share the same generated grass/dirt mask so their boundaries line up.
-7. For decoration layers such as flowers, set `Paint On` to `Grass Only` and set `Paint Chance` to a low value such as `0.05` to `0.15`.
-8. Adjust `Dirt Amount` to control how much dirt appears.
-9. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
-10. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
-11. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
-12. If Dirt RuleTiles touching the generated rectangle edge show grass fringes, set `Rule Tile Neighbor Padding` to `1`.
-13. Click `Generate Random Map` in the component inspector.
-14. Click `Clear Generated Area` if you need to clear that same range.
+1. Add `RandomTilemapGenerator` to the parent `Tilemap Grid` object.
+2. Configure `Terrain Layers`. Each layer targets one Tilemap node and can use its own grass tile, dirt RuleTile, additional dirt RuleTiles, and paint chance.
+3. For base ground layers, use `Paint On = Grass And Dirt` and `Paint Chance = 1`.
+4. For decoration layers such as flowers, use `Paint On = Grass Only` and a low `Paint Chance`, such as `0.05` to `0.15`.
+5. Adjust `Dirt Amount` to control how much dirt appears.
+6. Adjust `Terrain Noise Scale` to control patch size. Smaller values create larger continuous areas; larger values create more broken-up areas.
+7. Use `Terrain Smoothing Iterations` to remove noisy one-cell fragments and fill small holes.
+8. Keep `Min Cell` as `(-40, -40)` and `Max Cell` as `(40, 40)` to fill x=-40..40 and y=-40..40.
+9. If Dirt RuleTiles touching the generated rectangle edge show grass fringes, set `Rule Tile Neighbor Padding` to `1`.
+10. Click `Generate Random Map` in the component inspector.
+11. Click `Clear Generated Area` if you need to clear that same range.
 
 Example `Terrain Layers` setup:
 
@@ -71,5 +68,3 @@ Recommended starting values for natural grass/dirt terrain:
 - `Terrain Smoothing Iterations`: `3`
 - `Dirt Survival Neighbors`: `3`
 - `Dirt Birth Neighbors`: `5`
-
-`Style Groups` mode still exists for simple variant pools, but it is not recommended for palettes where most tiles are grass/dirt boundary pieces.
